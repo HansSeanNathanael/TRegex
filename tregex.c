@@ -418,7 +418,7 @@ void tRegexSetCode(TRegex *regex, char *code)
 void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
 {
     printf("%d\n", *pos);
-    int bound[100];
+    int bound[100]; // to save upper and lower bound of one state in endstate
     int size = 0;
     int push = 1;
 
@@ -473,8 +473,17 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
         }
         else if (trDArrayGetData(trDArrayGetElement(list, *pos)) == '|')
         {
+            if (push == 1)
+            {
+                size += 1;
+                TRDArray *empty = trDArrayInit(1);
+                trDArrayPush(startState, empty);
+                trDArrayPush(endState, empty);
+                bound[size - 1] = trDArrayGetSize(endState) - 1;
+                bound[size] = trDArrayGetSize(endState);
+            }
+//            printf("| : %d\n", *pos);
             push = 1;
-            printf("| : %d\n", *pos);
             // broken here if "a|(bc)"
             // | followed with ( break the function
         }
@@ -482,6 +491,7 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
         {
             if (push == 1)
             {
+                //push new state
                 push = 0;
                 size += 1;
 //                printf("PUSH\n");
@@ -492,6 +502,7 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
             }
             else
             {
+                // connecting new state to group of endstate
                 for (int j = bound[size] - 1; j >= bound[size-1]; j--)
                 {
                     trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(list, *pos));
@@ -502,6 +513,16 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
             }
         }
         *pos += 1;
+    }
+    if (push == 1)
+    {
+        size += 1;
+        push = 0;
+        TRDArray *empty = trDArrayInit(1);
+        trDArrayPush(startState, empty);
+        trDArrayPush(endState, empty);
+        bound[size - 1] = trDArrayGetSize(endState) - 1;
+        bound[size] = trDArrayGetSize(endState);
     }
 //    for (int j = 0; j < trDArrayGetSize(startState); j++)
 //    {
@@ -534,6 +555,27 @@ int tRegexCompareFuncRec(TRDArray *startingState, char *string, int pos, int len
         for (int i = 0; i < trDArrayGetSize(startingState); i++)
         {
             result = tRegexCompareFuncRec(trDArrayGetElement(startingState, i), string, pos+1, length);
+            if (result == 1)
+            {
+                return result;
+            }
+        }
+        return 0;
+    }
+    else if (trDArrayGetData(startingState) == 1)
+    {
+        int result = 0;
+        if (trDArrayGetSize(startingState) == 0)
+        {
+            if (pos == length)
+            {
+                return 1;
+            }
+            return 0;
+        }
+        for (int i = 0; i < trDArrayGetSize(startingState); i++)
+        {
+            result = tRegexCompareFuncRec(trDArrayGetElement(startingState, i), string, pos, length);
             if (result == 1)
             {
                 return result;
@@ -668,14 +710,24 @@ int main()
 //    tRegexCompile(&regex);
 //    printf("%s\n", tRegexComparePattern(regex, "zx") == 1 ? "True" : "False");
 
-    // @Test 9
-    tRegexSetCode(&regex, "employ(|er|ee|ment|ing|able)");
-    tRegexCompile(&regex);
-    printf("%s\n", tRegexComparePattern(regex, "employer") == 1 ? "True" : "False");
-    printf("%s\n", tRegexComparePattern(regex, "employee") == 1 ? "True" : "False");
-    printf("%s\n", tRegexComparePattern(regex, "employment") == 1 ? "True" : "False");
-    printf("%s\n", tRegexComparePattern(regex, "employable") == 1 ? "True" : "False");
+//    // @Test 9
+//    tRegexSetCode(&regex, "employ(er|ee|ment|ing|able|)");
+//    tRegexCompile(&regex);
+//    printf("%s\n", tRegexComparePattern(regex, "employer") == 1 ? "True" : "False");
+//    printf("%s\n", tRegexComparePattern(regex, "employee") == 1 ? "True" : "False");
+//    printf("%s\n", tRegexComparePattern(regex, "employment") == 1 ? "True" : "False");
+//    printf("%s\n", tRegexComparePattern(regex, "employable") == 1 ? "True" : "False");
+//    printf("%s\n", tRegexComparePattern(regex, "employ") == 1 ? "True" : "False"); //still broken FIXED! maybe...
 
+//    // @Test 10
+//    tRegexSetCode(&regex, "(||(||a)|)");
+//    tRegexCompile(&regex);
+//    printf("%s\n", tRegexComparePattern(regex, "a") == 1 ? "True" : "False");
+
+    // @Test 11
+    tRegexSetCode(&regex, "a|(|b)");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "a") == 1 ? "True" : "False");
 
 //    trDArrayDeleteAll(&trDArray);
 //    printf("%s\n", trDArray == NULL ? "NULL" : "Tidak Otomatis");
