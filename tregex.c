@@ -2,6 +2,8 @@
 #include "stdlib.h"
 #include "string.h"
 
+enum {NORMAL, START, END, EMPTY, NUMBERS, LETTERS, ANYTHING, SYMBOL};
+
 /**
     This is for regex-graph's node, containing current state char and nextState (array)
     @attribute data : char data for this state
@@ -15,6 +17,7 @@ typedef struct TRDArray
     int size;
     int capacity;
     struct TRDArray **nextState;
+    int type;
     int visited;
 } TRDArray;
 
@@ -48,12 +51,17 @@ char trDArrayGetData(TRDArray *array)
     return array->data;
 }
 
+int trDArrayGetType(TRDArray *array)
+{
+    return array->type;
+}
+
 /**
     function to initialize TRDArray with state data
     @param data : data of current state
     @return the initialized of TRDArray
 */
-TRDArray *trDArrayInit(char data)
+TRDArray *trDArrayInit(char data, int type)
 {
     TRDArray *trDArray = (TRDArray*)malloc(sizeof(TRDArray));
     trDArray->data = data;
@@ -61,6 +69,7 @@ TRDArray *trDArrayInit(char data)
     trDArray->capacity = 2;
     trDArray->nextState = (TRDArray**)malloc(sizeof(TRDArray*) * trDArrayGetCapacity(trDArray));
     trDArray->visited = 0;
+    trDArray->type = type;
     return trDArray;
 }
 
@@ -177,7 +186,7 @@ void trDArrayDeleteAllFuncRec(TRDArray *garbageCollector, TRDArray *nextState)
 */
 void trDArrayDeleteAll(TRDArray **root)
 {
-    TRDArray *garbageCollector = trDArrayInit((char)0);
+    TRDArray *garbageCollector = trDArrayInit((char)0, EMPTY);
     trDArrayPush(garbageCollector, *root);
     (*root)->visited = 1;
     trDArrayDeleteAllFuncRec(garbageCollector, *root);
@@ -229,7 +238,7 @@ TRegex tRegexInitCode(char *code)
 {
     TRegex regex;
     regex.compiled = 0;
-    regex.startingState = trDArrayInit(0);
+    regex.startingState = trDArrayInit(0, EMPTY);
     strcpy(regex.code, code);
     return regex;
 }
@@ -242,7 +251,7 @@ TRegex tRegexInit()
 {
     TRegex regex;
     regex.compiled = 0;
-    regex.startingState = trDArrayInit(0);
+    regex.startingState = trDArrayInit(0, START);
     strcpy(regex.code, "");
     return regex;
 }
@@ -265,171 +274,55 @@ void tRegexSetCode(TRegex *regex, char *code)
 {
     regex->compiled = 0;
     trDArrayDeleteAll(&(regex->startingState)); // delete existing graph if already compiled
-    regex->startingState = trDArrayInit(0);
+    regex->startingState = trDArrayInit(0, START);
     strcpy(regex->code, code);
 }
 
-//TRDArray *tRegexCompileFuncRec2(TRDArray *parentNode, char *code, int *pos, int length)
-//{
-//    TRDArray *currentNode;
-//    if (code[*pos] != '(' && code[*pos] != ')' && code[*pos] != '(')
-//    {
-//        currentNode = trDArrayInit(code[*pos]);
-//
-//    }
-//}
-//
-//void tRegexCompileFuncRec(TRDArray *parentNode, char *code, int *pos, int length)
-//{
-//    if (code[*pos] != ')' && *pos < length)
-//    {
-//        if (code[*pos] == '(')
-//        {
-//            *pos += 1;
-//            while(code[*pos] != ')')
-//            {
-//                tRegexCompileFuncRec(parentNode, code, pos, length);
-//            }
-//        }
-//        else
-//        {
-////            TRDArray *currentNode = trDArrayInit(code[*pos]);
-////            *pos += 1;
-////            trDArrayPush(currentNode, tRegexCompileFuncRec(code, pos, length));
-////            return currentNode;
-////
-//
-//            TRDArray *currentNode = trDArrayInit(code[*pos]);
-//            trDArrayPush(parentNode, currentNode);
-//            *pos += 1;
-//            tRegexCompileFuncRec(currentNode, code, pos, length);
-//        }
-//    }
-//}
-//
-//void dummy(TRDArray *currentState, TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
-//{
-//    printf("%d\n", *pos);
-//    if (*pos >= trDArrayGetSize(list))
-//    {
-//        return;
-//    }
-//    if (trDArrayGetData(trDArrayGetElement(list, *pos)) == '(')
-//    {
-//        *pos += 1;
-//        TRDArray *endStateForThis = trDArrayInit(0);
-//        TRDArray *startStateForThis = trDArrayInit(0);
-//        dummy(currentState, startStateForThis, endStateForThis, list, pos);
-//        for (int i = 0; i < trDArrayGetSize(currentState); i++)
-//        {
-//            for (int j = 0; j < trDArrayGetSize(startStateForThis); j++)
-//            {
-//                trDArrayPush(trDArrayGetElement(currentState, i), trDArrayGetElement(startStateForThis, j));
-//            }
-//        }
-//        trDArrayMakeEmpty(currentState);
-//        trDArrayInsertAll(currentState, endStateForThis);
-//        *pos += 1;
-//        trDArrayMakeEmpty(startStateForThis);
-//        trDArrayMakeEmpty(endStateForThis);
-//
-//        dummy(currentState, startStateForThis, endStateForThis, list, pos);
-//        trDArrayDelete(startStateForThis);
-//        trDArrayDelete(endStateForThis);
-//
-//
-//    }
-//    else if (trDArrayGetData(trDArrayGetElement(list, *pos)) == ')')
-//    {
-//        *pos += 1;
-//        return;
-//    }
-//    else if (trDArrayGetData(trDArrayGetElement(list, *pos)) == '|')
-//    {
-//
-//    }
-//    else
-//    {
-//        trDArrayPush(startState, trDArrayGetElement(list, *pos));
-//        TRDArray *walker = trDArrayGetElement(list, *pos);
-//        *pos += 1;
-//        for (int i = *pos; i < trDArrayGetSize(list); i++)
-//        {
-//            if (trDArrayGetData(trDArrayGetElement(list, i)) == '(')
-//            {
-//
-//            }
-//            else if (trDArrayGetData(trDArrayGetElement(list, i)) == ')')
-//            {
-//                *pos = i;
-//                return;
-//            }
-//            else if (trDArrayGetData(trDArrayGetElement(list, i)) == '|')
-//            {
-//
-//            }
-//            else
-//            {
-//                trDArrayPush(walker, trDArrayGetElement(list, i));
-//                walker= trDArrayGetElement(list, i);
-//            }
-//            *pos = i;
-//            trDArrayPush(endState, walker);
-//        }
-//    }
-////
-////    trDArrayDelete(startStateForThis);
-//
-////    for (int i = *pos; i < trDArrayGetSize(list) -1; i++)
-////    {
-////        if (trDArrayGetData(trDArrayGetElement(list, i)) == '(')
-////        {
-////            trDArrayPush(stack, trDArrayGetElement(list, i));
-////        }
-////        else if (trDArrayGetData(trDArrayGetElement(list, i)) == ')')
-////        {
-////
-////        }
-////        else if (trDArrayGetData(trDArrayGetElement(list, i)) == '|')
-////        {
-////            for (int i = trDArrayGetSize(stack); i >= 0; i++)
-////            {
-////                char data = trDArrayGetData(trDArrayGetElement(stack, i));
-////                if (data != '(')
-////                {
-////                    trDArrayPush(trDArrayGetElement(stack, i), trDArrayGetElement(list, i));
-////                    break;
-////                }
-////            }
-////        }
-////        else
-////        {
-////
-////        }
-////    }
-////
-////    trDArrayDelete(currentState);
-////    trDArrayDelete(stack);
-//}
-
 /**
-    Still not finished, function to build regex graph
+    Function to decode regex's notation to graph for regex
+    @param startState : array to store start state of sub graph
+    @param endState : array to store end state of sub graph
+    @param list : array that contain all graph state from converted code
+    @param pos : index of list to be converted
 */
-void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
+void tRegexCompileFuncRec(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
 {
-    printf("%d\n", *pos);
+//    printf("%d\n", *pos);
     int bound[100]; // to save upper and lower bound of one state in endstate
     int size = 0;
     int push = 1;
 
-    while(*pos < trDArrayGetSize(list) && trDArrayGetData(trDArrayGetElement(list, *pos)) != ')')
+    while(*pos < trDArrayGetSize(list) && (trDArrayGetData(trDArrayGetElement(list, *pos)) != ')' || trDArrayGetType(trDArrayGetElement(list, *pos)) != SYMBOL))
     {
-        if (trDArrayGetData(trDArrayGetElement(list, *pos)) == '(')
+        if (trDArrayGetData(trDArrayGetElement(list, *pos)) == '(' && trDArrayGetType(trDArrayGetElement(list, *pos)) == SYMBOL)
         {
             *pos += 1;
-            TRDArray *startStateForThis = trDArrayInit(0);
-            TRDArray *endStateForThis = trDArrayInit(0);
-            dummy2(startStateForThis, endStateForThis, list, pos);
+
+            int type = 0;
+
+            TRDArray *startStateForThis = trDArrayInit(0, EMPTY);
+            TRDArray *endStateForThis = trDArrayInit(0, EMPTY);
+            tRegexCompileFuncRec(startStateForThis, endStateForThis, list, pos);
+
+            if (*pos + 1 < trDArrayGetSize(list))
+            {
+                if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '+' && trDArrayGetType(trDArrayGetElement(list, *pos + 1)) == SYMBOL)
+                {
+                    type = 1;
+                }
+                else if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '*' && trDArrayGetType(trDArrayGetElement(list, *pos + 1)) == SYMBOL)
+                {
+                    type = 2;
+                }
+                else if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '?' && trDArrayGetType(trDArrayGetElement(list, *pos + 1)) == SYMBOL)
+                {
+                    type = 3;
+                }
+                else
+                {
+                    type = 0;
+                }
+            }
 
 //            for (int j = 0; j < trDArrayGetSize(startState); j++)
 //            {
@@ -440,44 +333,178 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
             {
                 push = 0;
                 size += 1;
+
+
                 for (int j = 0; j < trDArrayGetSize(startStateForThis); j++)
                 {
                     trDArrayPush(startState, trDArrayGetElement(startStateForThis, j));
                 }
+
                 bound[size-1] = trDArrayGetSize(endState);
-                for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+
+                if (type == 1)
                 {
-                    trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endStateForThis, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                    }
+
+                    *pos += 1;
+
                 }
+                else if (type == 2)
+                {
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endStateForThis, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                    }
+
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
+                    trDArrayPush(startState, empty);
+                    trDArrayPush(endState, empty);
+
+                    *pos += 1;
+
+                }
+                else if (type == 3)
+                {
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+                    }
+
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
+                    trDArrayPush(startState, empty);
+                    trDArrayPush(endState, empty);
+
+                    *pos += 1;
+
+                }
+                else
+                {
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+                    }
+
+                }
+
                 bound[size] = trDArrayGetSize(endState);
             }
             else
             {
-                for (int j = bound[size] - 1; j >= bound[size-1]; j--)
+                if (type == 1)
                 {
-                    for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
-                    {
-                        trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(startStateForThis, k));
-                    }
-                    trDArrayPop(endState);
-                }
-                for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
-                {
-                    trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
-                }
 
-                bound[size] = bound[size-1] + trDArrayGetSize(endStateForThis);
+                    for (int j = bound[size] - 1; j >= bound[size-1]; j--)
+                    {
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                        trDArrayPop(endState);
+                    }
+
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endStateForThis, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                    }
+                    bound[size] = bound[size-1] + trDArrayGetSize(endStateForThis);
+                    *pos += 1;
+                }
+                else if (type == 2)
+                {
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
+
+                    for (int j = bound[size] - 1; j >= bound[size-1]; j--)
+                    {
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                        trDArrayPush(trDArrayGetElement(endState, j), empty);
+                        trDArrayPop(endState);
+                    }
+
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endStateForThis, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                    }
+
+                    trDArrayPush(endState, empty);
+                    bound[size] = bound[size-1] + trDArrayGetSize(endStateForThis) + 1;
+
+                    *pos += 1;
+                }
+                else if (type == 3)
+                {
+
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
+
+                    for (int j = bound[size] - 1; j >= bound[size - 1]; j--)
+                    {
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                        trDArrayPush(trDArrayGetElement(endState, j), empty);
+                        trDArrayPop(endState);
+                    }
+
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+                    }
+
+                    trDArrayPush(endState, empty);
+                    bound[size] = bound[size-1] + trDArrayGetSize(endStateForThis) + 1;
+                    *pos += 1;
+                }
+                else
+                {
+                    for (int j = bound[size] - 1; j >= bound[size-1]; j--)
+                    {
+                        for (int k = 0; k < trDArrayGetSize(startStateForThis); k++)
+                        {
+                            trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(startStateForThis, k));
+                        }
+                        trDArrayPop(endState);
+                    }
+                    for (int j = 0; j < trDArrayGetSize(endStateForThis); j++)
+                    {
+                        trDArrayPush(endState, trDArrayGetElement(endStateForThis, j));
+                    }
+                    bound[size] = bound[size-1] + trDArrayGetSize(endStateForThis);
+                }
             }
 
             trDArrayDelete(startStateForThis);
             trDArrayDelete(endStateForThis);
         }
-        else if (trDArrayGetData(trDArrayGetElement(list, *pos)) == '|')
+        else if (trDArrayGetData(trDArrayGetElement(list, *pos)) == '|' && trDArrayGetType(trDArrayGetElement(list, *pos)) == SYMBOL)
         {
             if (push == 1)
             {
                 size += 1;
-                TRDArray *empty = trDArrayInit(1);
+                TRDArray *empty = trDArrayInit(0, EMPTY);
                 trDArrayPush(startState, empty);
                 trDArrayPush(endState, empty);
                 bound[size - 1] = trDArrayGetSize(endState) - 1;
@@ -493,13 +520,17 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
             int type = 0;
             if (*pos + 1< trDArrayGetSize(list))
             {
-                if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '+')
+                if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '+' && trDArrayGetType(trDArrayGetElement(list, *pos + 1)) == SYMBOL)
                 {
                     type = 1;
                 }
-                else if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '*')
+                else if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '*' && trDArrayGetType(trDArrayGetElement(list, *pos + 1)) == SYMBOL)
                 {
                     type = 2;
+                }
+                else if (trDArrayGetData(trDArrayGetElement(list, *pos + 1)) == '?' && trDArrayGetType(trDArrayGetElement(list, *pos + 1)) == SYMBOL)
+                {
+                    type = 3;
                 }
             }
 //            TRDArray *prevState = trDArrayInit(0);
@@ -521,7 +552,17 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
                 }
                 else if (type == 2)
                 {
-                    TRDArray *empty = trDArrayInit(1);
+                    trDArrayPush(trDArrayGetElement(endState, bound[size-1]), trDArrayGetElement(list, *pos));
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
+                    trDArrayPush(startState, empty);
+                    trDArrayPush(endState, empty);
+                    bound[size - 1] = trDArrayGetSize(endState) - 1;
+                    bound[size] = bound[size - 1] + 1;
+                    *pos += 1;
+                }
+                else if (type == 3)
+                {
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
                     trDArrayPush(startState, empty);
                     trDArrayPush(endState, empty);
                     bound[size - 1] = trDArrayGetSize(endState) - 1;
@@ -539,10 +580,9 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
                         trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(list, *pos));
                         trDArrayPop(endState);
                     }
+
                     trDArrayPush(endState, trDArrayGetElement(list, *pos));
                     bound[size] = bound[size-1] + 1;
-
-                    trDArrayPush(trDArrayGetElement(endState, bound[size-1]), trDArrayGetElement(list, *pos));
                 }
                 else if (type == 1)
                 {
@@ -551,6 +591,7 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
                         trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(list, *pos));
                         trDArrayPop(endState);
                     }
+
                     trDArrayPush(endState, trDArrayGetElement(list, *pos));
                     bound[size] = bound[size-1] + 1;
 
@@ -560,13 +601,33 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
                 }
                 else if (type == 2)
                 {
-                    TRDArray *empty = trDArrayInit(1);
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
                     for (int j = bound[size] - 1; j >= bound[size-1]; j--)
                     {
                         trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(list, *pos));
                         trDArrayPush(trDArrayGetElement(endState, j), empty);
                         trDArrayPop(endState);
                     }
+
+                    trDArrayPush(trDArrayGetElement(list, *pos), trDArrayGetElement(list, *pos));
+
+                    trDArrayPush(endState, trDArrayGetElement(list, *pos));
+                    trDArrayPush(endState, empty);
+                    bound[size] = bound[size-1] + 2;
+
+                    *pos += 1;
+                }
+                else if (type == 3)
+                {
+                    TRDArray *empty = trDArrayInit(0, EMPTY);
+
+                    for (int j = bound[size] - 1; j >= bound[size-1]; j--)
+                    {
+                        trDArrayPush(trDArrayGetElement(endState, j), trDArrayGetElement(list, *pos));
+                        trDArrayPush(trDArrayGetElement(endState, j), empty);
+                        trDArrayPop(endState);
+                    }
+
                     trDArrayPush(endState, trDArrayGetElement(list, *pos));
                     trDArrayPush(endState, empty);
                     bound[size] = bound[size-1] + 2;
@@ -582,7 +643,7 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
     {
         size += 1;
         push = 0;
-        TRDArray *empty = trDArrayInit(1);
+        TRDArray *empty = trDArrayInit(0, EMPTY);
         trDArrayPush(startState, empty);
         trDArrayPush(endState, empty);
         bound[size - 1] = trDArrayGetSize(endState) - 1;
@@ -604,19 +665,20 @@ void dummy2(TRDArray *startState, TRDArray *endState, TRDArray *list, int *pos)
 */
 int tRegexCompareFuncRec(TRDArray *startingState, char *string, int pos, int length)
 {
-    printf("%c ", trDArrayGetData(startingState));
+//    printf("%c ", trDArrayGetData(startingState));
+//    printf("%d ", pos);
 
-    if (trDArrayGetData(startingState) == 1)
+    if (pos == length && trDArrayGetType(startingState) != START && trDArrayGetType(startingState) != EMPTY)
+    {
+        if (trDArrayGetType(startingState) == END)
+        {
+            return 1;
+        }
+        return 0;
+    }
+    else if (trDArrayGetType(startingState) == EMPTY || trDArrayGetType(startingState) == START)
     {
         int result = 0;
-        if (trDArrayGetSize(startingState) == 0)
-        {
-            if (pos == length)
-            {
-                return 1;
-            }
-            return 0;
-        }
         for (int i = 0; i < trDArrayGetSize(startingState); i++)
         {
             result = tRegexCompareFuncRec(trDArrayGetElement(startingState, i), string, pos, length);
@@ -627,20 +689,49 @@ int tRegexCompareFuncRec(TRDArray *startingState, char *string, int pos, int len
         }
         return 0;
     }
-    else if (pos >= length)
+    else if (trDArrayGetType(startingState) == NUMBERS)
     {
-        if (trDArrayGetData(startingState) == 0)
+        if (string[pos] >= 48 && string[pos] <= 57)
         {
-            if (trDArrayGetSize(startingState) == 0)
+            int result = 0;
+            for (int i = 0; i < trDArrayGetSize(startingState); i++)
             {
-                return 1;
+                result = tRegexCompareFuncRec(trDArrayGetElement(startingState, i), string, pos+1, length);
+                if (result == 1)
+                {
+                    return result;
+                }
             }
         }
-        return 0;
+        else
+        {
+            return 0;
+        }
     }
-    else if (trDArrayGetData(startingState) == string[pos] || trDArrayGetData(startingState) == 0)
+    else if (trDArrayGetType(startingState) == LETTERS)
+    {
+        if ((string[pos] >= 65 && string[pos] <= 90) || (string[pos] >= 97 && string[pos] <= 122) || string[pos] == '_')
+        {
+            int result = 0;
+            for (int i = 0; i < trDArrayGetSize(startingState); i++)
+            {
+                result = tRegexCompareFuncRec(trDArrayGetElement(startingState, i), string, pos+1, length);
+                if (result == 1)
+                {
+                    return result;
+                }
+            }
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    else if (trDArrayGetData(startingState) == string[pos] || trDArrayGetType(startingState) == ANYTHING)
     {
         int result = 0;
+
+//        printf("pos: %c\n", string[pos]);
         for (int i = 0; i < trDArrayGetSize(startingState); i++)
         {
             result = tRegexCompareFuncRec(trDArrayGetElement(startingState, i), string, pos+1, length);
@@ -656,11 +747,59 @@ int tRegexCompareFuncRec(TRDArray *startingState, char *string, int pos, int len
 
 /**
     Function to compare pattern of string with regex
+    @param regex : regex that will used
+    @param string : string to check is it match with regex
     @return 1 if there's minimum 1 pattern match, 0 if no patter match
 */
 int tRegexComparePattern(TRegex regex, char *string)
 {
-    return tRegexCompareFuncRec(regex.startingState, string, -1, strlen(string));
+    return tRegexCompareFuncRec(regex.startingState, string, 0, strlen(string));
+}
+
+
+/**
+    Function to convert code of regex's notation to state node
+    @param code : code that will be converted
+    @param graphNode : dynamic array of node to store all state
+*/
+void convertCode(char *code, TRDArray *graphNode)
+{
+    int position = 0;
+    int length = strlen(code);
+    int bracket = 0;
+    while(position < length)
+    {
+        if (code[position] == '\\')
+        {
+            position += 1;
+            if (code[position] == 'w')
+            {
+                trDArrayPush(graphNode, trDArrayInit('w', LETTERS));
+            }
+            else if (code[position] == 'd')
+            {
+                trDArrayPush(graphNode, trDArrayInit('d', NUMBERS));
+            }
+            else
+            {
+                trDArrayPush(graphNode, trDArrayInit(code[position], NORMAL));
+            }
+        }
+        else if (code[position] == '(' || code[position] == ')' || code[position] == '*' || code[position] == '|' || code[position] == '+' || code[position] == '?')
+        {
+            trDArrayPush(graphNode, trDArrayInit(code[position], SYMBOL));
+        }
+        else if (code[position] == '.')
+        {
+            trDArrayPush(graphNode, trDArrayInit(code[position], ANYTHING));
+        }
+        else
+        {
+            trDArrayPush(graphNode, trDArrayInit(code[position], NORMAL));
+        }
+
+        position++;
+    }
 }
 
 /**
@@ -676,11 +815,9 @@ void tRegexCompile(TRegex *regex)
         strcat(appendedCode, regex->code);
         strcat(appendedCode, ")");
 
-        TRDArray *allGraphNode = trDArrayInit(0);
-        for (int i = 0; i < strlen(appendedCode); i++)
-        {
-            trDArrayPush(allGraphNode, trDArrayInit(appendedCode[i]));
-        }
+        TRDArray *allGraphNode = trDArrayInit(0, EMPTY);
+        convertCode(appendedCode, allGraphNode);
+
 //        TRDArray *currentState = trDArrayInit(0);
 //        TRDArray *nextState = trDArrayInit(0);
 //        TRDArray *endState = trDArrayInit(0);
@@ -688,17 +825,17 @@ void tRegexCompile(TRegex *regex)
 //        int start = 0;
 //        dummy2(currentState, nextState, endState, allGraphNode, &start);
 
-        TRDArray *nextState = trDArrayInit(0);
-        TRDArray *endState = trDArrayInit(0);
+        TRDArray *nextState = trDArrayInit(0, EMPTY);
+        TRDArray *endState = trDArrayInit(0, EMPTY);
 //        trDArrayPush(endState, regex->startingState);
         int start = 0;
-        dummy2(nextState, endState, allGraphNode, &start);
+        tRegexCompileFuncRec(nextState, endState, allGraphNode, &start);
         for (int i = 0; i < trDArrayGetSize(nextState); i++)
         {
             trDArrayPush(regex->startingState, trDArrayGetElement(nextState, i));
         }
 
-        TRDArray *endStateNode = trDArrayInit(0);
+        TRDArray *endStateNode = trDArrayInit(0, END);
         for (int i = 0; i < trDArrayGetSize(endState); i++)
         {
             trDArrayPush(trDArrayGetElement(endState, i), endStateNode);
@@ -715,7 +852,7 @@ void tRegexCompile(TRegex *regex)
 
 int main()
 {
-    TRDArray *trDArray = trDArrayInit('a');
+    TRDArray *trDArray = trDArrayInit('a', NORMAL);
 //    for (int i = 33; i < 61; i++)
 //    {
 //        trDArrayPush(trDArray, trDArrayInit(i));
@@ -794,6 +931,8 @@ int main()
     printf("%s\n", tRegexComparePattern(regex, "employable") == 1 ? "True" : "False");
     printf("%s\n", tRegexComparePattern(regex, "employ") == 1 ? "True" : "False"); //still broken FIXED! maybe...
 
+    TRDArray *a = trDArrayGetElement(trDArrayGetElement(regex.startingState, 0), 0);
+
     // @Test 10
     tRegexSetCode(&regex, "(||(||a)|)");
     tRegexCompile(&regex);
@@ -812,7 +951,7 @@ int main()
     // @Test 13
     tRegexSetCode(&regex, "ab*c");
     tRegexCompile(&regex);
-    printf("%s\n", tRegexComparePattern(regex, "ac") == 1 ? "True" : "False");
+    printf("%s\n", tRegexComparePattern(regex, "abbbbbc") == 1 ? "True" : "False");
 
     // @Test 14
     tRegexSetCode(&regex, "ab*c*");
@@ -829,7 +968,39 @@ int main()
     tRegexCompile(&regex);
     printf("%s\n", tRegexComparePattern(regex, "aefg") == 1 ? "True (seharusnya false)" : "False (memang hasil harus false)");
 
+    tRegexSetCode(&regex, "\\w+@\\w+\\.com");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "hans_sean@gmail.com") == 1 ? "True" : "False");
 
+    tRegexSetCode(&regex, "h.t");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "hit") == 1 ? "True" : "False");
+
+    tRegexSetCode(&regex, "a(h|l)*k");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "ahllhlhhhllhk") == 1 ? "True" : "False");
+
+    tRegexSetCode(&regex, "ah*o");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "ao") == 1 ? "True" : "False");
+
+    tRegexSetCode(&regex, "colou?r");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "color") == 1 ? "True" : "False");
+    printf("%s\n", tRegexComparePattern(regex, "colour") == 1 ? "True" : "False");
+
+    tRegexSetCode(&regex, "\\w+(\\w|\\.|\\d)*@\\w+\\.com");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "hans.sean22@gmail.com") == 1 ? "True" : "False");
+
+
+    tRegexSetCode(&regex, "\\w+(\\w|\\.|\\d)*@\\w+\\.(\\w+\\.)*\\w+");
+    tRegexCompile(&regex);
+    printf("%s\n", tRegexComparePattern(regex, "hans.sean22@mhsits.ac.id") == 1 ? "True" : "False");
+
+//    tRegexSetCode(&regex, "\\w+(\\w|\\.)*@\\w+\\.com");
+//    tRegexCompile(&regex);
+//    printf("%s\n", tRegexComparePattern(regex, "hans.sean@gmail.com") == 1 ? "True" : "False");
 
 //    trDArrayDeleteAll(&trDArray);
 //    printf("%s\n", trDArray == NULL ? "NULL" : "Tidak Otomatis");
